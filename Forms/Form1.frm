@@ -78,15 +78,11 @@ Private Declare Sub RtlMoveMemory Lib "kernel32" (ByRef pDst As Any, ByRef pSrc 
 Dim m_SysInfo As SystemInfo
 Dim m_VMem    As VirtualMemory
 Dim m_p0      As Long
-Dim m_size    As Long
-Dim m_ix      As Long
 
 Private Sub Form_Load()
     Set m_SysInfo = New SystemInfo
     Label1.Caption = m_SysInfo.ToStr
     Set m_VMem = New VirtualMemory
-    '512 Bytes = 128 Longs
-    '2048 Bytes =
 End Sub
 
 Private Sub BtnCallMsInfo32_Click()
@@ -97,9 +93,9 @@ Private Sub BtnCopyArrayToVMem_Click()
     
     'create array fill with numbers
     Randomize
-    m_size = Rnd * 4096 'in Bytes
+    Dim aSize As Long: aSize = Rnd * 4096 'in Bytes
     
-    Dim u As Long: u = m_size \ 4 - 1
+    Dim u As Long: u = aSize \ 4 - 1
     ReDim Arr(0 To u) As Long
     Dim i As Long
     For i = 0 To u
@@ -107,34 +103,36 @@ Private Sub BtnCopyArrayToVMem_Click()
     Next
 
     'allocate virtual memory the size of the array in bytes
-    Dim p As Long: p = m_VMem.Alloc(m_size)
-    List1.AddItem "Allocated: " & m_size & " Bytes"
+    Dim p As Long: p = m_VMem.Alloc(aSize)
+    List1.AddItem "Allocated: " & aSize & " Bytes"
     'copy the array to virtual memory
-    RtlMoveMemory ByVal p, Arr(0), m_size
+    RtlMoveMemory ByVal p, Arr(0), aSize
     
-    If (m_VMem.PageSize Mod m_size) = 0 Then
+    If (m_VMem.PageSize Mod aSize) = 0 Then
         m_p0 = p
         List1.AddItem "p0: " & m_p0
     End If
     List1.AddItem "VMemAlloc: " & p & "   " & p - m_p0
-    m_ix = m_ix + 1
+    'm_ix = m_ix + 1
 End Sub
 
 Private Sub BtnCopyArrayFromVMem_Click()
-    Dim i As Long: i = m_ix
-    Dim p As Long: p = m_VMem.Pointer(i)
+    Randomize
+    Dim ix As Long: ix = Rnd * m_VMem.PagesCount
+    ix = IIf(ix = 0, 1, ix)
+    Dim p As Long: p = m_VMem.Pointer(ix)
+    Dim sz As Long: sz = m_VMem.SizeForIndex(ix)
     If p = 0 Then
-        MsgBox "Not enough virtual memory for index: " & i
+        MsgBox "Not enough virtual memory for index: " & ix
         Exit Sub
     End If
-    Dim u As Long: u = m_size \ 4 - 1
+    Dim u As Long: u = sz \ 4 - 1
     ReDim Arr(0 To u) As Long
-    RtlMoveMemory Arr(0), ByVal p, m_size
+    RtlMoveMemory Arr(0), ByVal p, sz
     'test if the values are all there
-    Randomize
-    i = Rnd * u
+    Dim i As Long: i = Rnd * u
     Dim v As Long: v = Arr(i)
-    MsgBox "On index " & i & " the value is " & Arr(i) & " this is " & IIf(i = v, "", "in") & "correct!"
+    MsgBox "On page " & ix & " on index " & i & " the value is " & Arr(i) & " this is " & IIf(i = v, "", "in") & "correct!"
     'on position i the value is i, if not there must be something wrong
     
 End Sub

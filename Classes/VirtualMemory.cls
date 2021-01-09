@@ -127,6 +127,9 @@ Public Property Get PageSize() As Long
     PageSize = m_PageSize
 End Property
 
+Public Property Get PagesCount() As Long
+    PagesCount = m_PagesCount
+End Property
 Public Property Get AllocationGranularity() As Long
     AllocationGranularity = m_AGranularity
 End Property
@@ -216,6 +219,22 @@ Public Property Get Pointer(ByVal Index As Long) As Long
         Pointer = .Arr(c).Pointer
     End With
 End Property
+
+Public Property Get SizeForIndex(ByVal Index As Long) As Long
+    Dim c As Long
+    Dim i As Long
+    
+    For i = 0 To m_PagesCount - 1
+        c = c + m_VMemPages(i).Count
+        If Index <= c Then Exit For
+    Next
+    With m_VMemPages(i) 'i - 1)
+        c = c - Index
+        If c < 0 Then Exit Property
+        SizeForIndex = .Arr(c).Size
+    End With
+End Property
+
 'Private Sub Add(ByVal Size As Long, _
 '                Optional ByVal flAllocation As AllocationFlags = MemCommitReserve, _
 '                Optional ByVal flProtection As ProtectionFlags = PageExecuteReadWrite)
