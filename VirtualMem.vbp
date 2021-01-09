@@ -3,7 +3,6 @@ Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\st
 Form=Forms\Form1.frm
 Class=VirtualMemory; Classes\VirtualMemory.cls
 Class=SystemInfo; Classes\SystemInfo.cls
-Class=Class1; Classes\Class1.cls
 IconForm="Form1"
 Startup="Form1"
 ExeName32="VirtualMem.exe"

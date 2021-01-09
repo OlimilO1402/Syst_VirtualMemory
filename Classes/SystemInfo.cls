@@ -100,6 +100,10 @@ End Sub
 '    'wReserved
 'End Property
 
+Public Sub CallSysInfoExe()
+    Shell "msinfo32.exe"
+End Sub
+
 Public Property Get ProcessorArchitecture() As String
     Dim s As String
     Select Case m_System_Info.wProcessorArchitecture
@@ -120,6 +124,9 @@ Private Function GetCPUSpeed() As Long
     hr = RegCloseKey(hKey)
     GetCPUSpeed = CPUSpeed
 End Function
+Public Property Get CPUSpeed() As Long
+    CPUSpeed = m_CPUSpeed
+End Property
 
 Private Function GetCPUName() As String
     
@@ -146,9 +153,6 @@ Private Function GetCPUName() As String
     hr = RegCloseKey(hKey)
         
 End Function
-Public Property Get CPUSpeed() As Long
-    CPUSpeed = m_CPUSpeed
-End Property
 Public Property Get CPUName() As String
     CPUName = m_CPUName
 End Property
@@ -181,7 +185,7 @@ End Property
 Public Property Get ProcessorLevel() As Long
     ProcessorLevel = m_System_Info.wProcessorLevel
 End Property
-Public Property Get ProcessorRevision()
+Public Property Get ProcessorRevision() As Integer
     ProcessorRevision = m_System_Info.wProcessorRevision
 End Property
 
@@ -196,7 +200,7 @@ Public Function ToStr() As String
     Dim s As String
     'With m_System_Info
     With Me
-        s = s & "ProcessorArchitecture: " & CStr(.ProcessorArchitecture) & vbCrLf
+        s = s & "ProcessorArchitecture: " & .ProcessorArchitecture & vbCrLf
         s = s & "NumberOfProcessors   : " & CStr(.NumberOfProcessors) & vbCrLf
         s = s & "ActiveProcessorMask  : " & CStr(.ActiveProcessorMask) & vbCrLf
         s = s & "ProcessorLevel       : " & CStr(.ProcessorLevel) & vbCrLf

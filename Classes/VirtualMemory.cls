@@ -15,12 +15,16 @@ Option Explicit
 
 Private Declare Sub GetNativeSystemInfo Lib "kernel32" ( _
     ByRef lpSystemInfo As SYSTEM_INFO)
+
 Private Declare Function VirtualAlloc Lib "kernel32" ( _
     ByVal lpAddress As Long, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+
 Private Declare Function VirtualFree Lib "kernel32" ( _
     ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+
 Private Declare Function VirtualLock Lib "kernel32" ( _
     ByRef lpAddress As Any, ByVal dwSize As Long) As Long
+
 Private Declare Function VirtualProtect Lib "kernel32" ( _
     ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As Long) As Long
     
@@ -85,7 +89,7 @@ Private Type TVMemPage
 End Type
 Private m_VMemPages()  As TVMemPage
 Private m_Capacity     As Long       ' die Gesamt-Speicherkapazität (= m_HandlesCount * m_AGranularity)
-Private m_Size         As Long       ' die Summe aller hinzugefügten Alloc Size
+Private m_size         As Long       ' die Summe aller hinzugefügten Alloc Size
 Private m_PagesCount   As Long       ' die Anzahl der für den User zur Verfügung gestellten Speicherbereich-Handles
 Private m_PageSize     As Long
 Private m_AGranularity As Long       ' AllocationGranularity, die Größe eines einzelnen virtuellen Speicherberichs
@@ -118,18 +122,23 @@ Private Sub Class_Terminate()
         End With
     Next
 End Sub
+
 Public Property Get PageSize() As Long
     PageSize = m_PageSize
 End Property
+
 Public Property Get AllocationGranularity() As Long
     AllocationGranularity = m_AGranularity
 End Property
+
 Public Property Get Capacity() As Long
     Capacity = m_Capacity
 End Property
+
 Public Property Get Size() As Long
-    Size = m_Size
+    Size = m_size
 End Property
+
 Private Function AddPage(aPage As TVMemPage) As Long
     If m_Capacity = 0 Then
         ReDim m_VMemPages(0 To 3)
@@ -144,6 +153,7 @@ Private Function AddPage(aPage As TVMemPage) As Long
     m_Capacity = m_PagesCount * m_PageSize 'AGranularity
     AddPage = aPage.Arr(0).Pointer
 End Function
+
 Private Function New_Page(ByVal Size As Long, _
                           ByVal flAl As AllocationFlags, _
                           ByVal flPr As ProtectionFlags) As TVMemPage
@@ -159,6 +169,7 @@ Private Function New_Page(ByVal Size As Long, _
         .Count = 1
     End With
 End Function
+
 Public Function Alloc(ByVal Size As Long, _
                       Optional ByVal flAllocat As AllocationFlags = AllocationFlags.MemCommitReserve, _
                       Optional ByVal flProtect As ProtectionFlags = ProtectionFlags.PageReadWrite) As Long
@@ -170,7 +181,7 @@ Public Function Alloc(ByVal Size As Long, _
         MsgBox "Can not allocate more than: " & CStr(m_PageSize) & " bytes at once"
         Exit Function
     End If
-    If m_Capacity < m_Size + Size Then
+    If m_Capacity < m_size + Size Then
         Alloc = AddPage(New_Page(Size, flAllocat, flProtect))
     Else
         With m_VMemPages(m_PagesCount - 1)
@@ -188,8 +199,9 @@ Public Function Alloc(ByVal Size As Long, _
             .Count = .Count + 1
         End With
     End If
-    m_Size = m_Size + Size
+    m_size = m_size + Size
 End Function
+
 Public Property Get Pointer(ByVal Index As Long) As Long
     Dim c As Long
     Dim i As Long
@@ -200,6 +212,7 @@ Public Property Get Pointer(ByVal Index As Long) As Long
     Next
     With m_VMemPages(i) 'i - 1)
         c = c - Index
+        If c < 0 Then Exit Property
         Pointer = .Arr(c).Pointer
     End With
 End Property
