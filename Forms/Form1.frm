@@ -5,6 +5,7 @@ Begin VB.Form Form1
    ClientLeft      =   120
    ClientTop       =   450
    ClientWidth     =   9390
+   Icon            =   "Form1.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   7440
    ScaleWidth      =   9390
@@ -19,11 +20,11 @@ Begin VB.Form Form1
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Height          =   3180
+      Height          =   3660
       Left            =   120
       TabIndex        =   1
       Top             =   3720
-      Width           =   6135
+      Width           =   9135
    End
    Begin VB.CommandButton BtnCopyArrayFromVMem 
       Caption         =   "Copy Array From VMem"
