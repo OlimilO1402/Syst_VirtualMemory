@@ -10,6 +10,14 @@ Begin VB.Form Form1
    ScaleHeight     =   7440
    ScaleWidth      =   9390
    StartUpPosition =   3  'Windows-Standard
+   Begin VB.CommandButton BtnInfo 
+      Caption         =   "Info"
+      Height          =   375
+      Left            =   5880
+      TabIndex        =   5
+      Top             =   3240
+      Width           =   495
+   End
    Begin VB.ListBox List1 
       BeginProperty Font 
          Name            =   "Courier New"
@@ -79,6 +87,10 @@ Private Declare Sub RtlMoveMemory Lib "kernel32" (ByRef pDst As Any, ByRef pSrc 
 Dim m_SysInfo As SystemInfo
 Dim m_VMem    As VirtualMemory
 Dim m_p0      As Long
+
+Private Sub BtnInfo_Click()
+    MsgBox App.CompanyName & " " & App.EXEName & " v" & App.Major & "." & App.Minor & "." & App.Revision & vbCrLf & App.FileDescription
+End Sub
 
 Private Sub Form_Load()
     Set m_SysInfo = New SystemInfo

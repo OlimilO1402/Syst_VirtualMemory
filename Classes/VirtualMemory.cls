@@ -13,27 +13,29 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Declare Sub GetNativeSystemInfo Lib "kernel32" ( _
-    ByRef lpSystemInfo As SYSTEM_INFO)
+#If VBA7 Then
+    Private Declare ptrsafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare ptrsafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+    Private Declare ptrsafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+    Private Declare ptrsafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
+    Private Declare ptrsafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
+#Else
+    Public Enum LongPtr
+        [_]
+    End Enum
+    Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+    Private Declare Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+    Private Declare Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
+    Private Declare Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
+#End If
 
-Private Declare Function VirtualAlloc Lib "kernel32" ( _
-    ByVal lpAddress As Long, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
-
-Private Declare Function VirtualFree Lib "kernel32" ( _
-    ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
-
-Private Declare Function VirtualLock Lib "kernel32" ( _
-    ByRef lpAddress As Any, ByVal dwSize As Long) As Long
-
-Private Declare Function VirtualProtect Lib "kernel32" ( _
-    ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As Long) As Long
-    
 Private Type SYSTEM_INFO
     wProcessorArchitecture  As Integer
     wReserved               As Integer
     dwPageSize              As Long
-    lpMinimumApplicationAddress As Long
-    lpMaximumApplicationAddress As Long
+    lpMinimumApplicationAddress As LongPtr
+    lpMaximumApplicationAddress As LongPtr
     dwActiveProcessorMask   As Long
     dwNumberOfProcessors    As Long
     dwProcessorType         As Long
@@ -77,7 +79,7 @@ Public Enum ProtectionFlags
     PageWiteCombine = &H400&        'PAGE_WRITECOMBINE      As Long = &H400
 End Enum
 Private Type TVMemory
-    Pointer     As Long ' der Zeiger zum Speicher
+    Pointer     As LongPtr ' der Zeiger zum Speicher
     Size        As Long ' die Größe des Speicherbereichs
 End Type
 Private Type TVMemPage
@@ -100,9 +102,10 @@ Private m_AGranularity As Long       ' AllocationGranularity, die Größe eines ei
 
 
 Private Sub Class_Initialize()
-    Dim si As SYSTEM_INFO: Call GetNativeSystemInfo(si)
+    Dim si As SYSTEM_INFO: GetNativeSystemInfo si
     m_AGranularity = si.dwAllocationGranularity
     m_PageSize = si.dwPageSize
+    ReDim m_VMemPages(0 To 3)
 End Sub
 Private Sub Class_Terminate()
     '
@@ -115,9 +118,10 @@ Private Sub Class_Terminate()
     For i = m_PagesCount - 1 To 0 Step -1
         With m_VMemPages(i)
             If .Count > 0 Then
-                hr = VirtualFree(.Arr(0).Pointer, m_PageSize, AllocationFlags.MemFree)
+                'maybe this should be ByVal?
+                hr = VirtualFree(ByVal .Arr(0).Pointer, m_PageSize, AllocationFlags.MemFree)
                 'If hr <> 0 Then MsgBox hr
-                Debug.Print hr
+                'Debug.Print hr
             End If
         End With
     Next
@@ -142,14 +146,10 @@ Public Property Get Size() As Long
     Size = m_size
 End Property
 
-Private Function AddPage(aPage As TVMemPage) As Long
-    If m_Capacity = 0 Then
-        ReDim m_VMemPages(0 To 3)
-    Else
-        Dim u As Long: u = UBound(m_VMemPages)
-        If m_PagesCount > u Then
-            ReDim Preserve m_VMemPages(0 To (u + 1) * 2 - 1)
-        End If
+Private Function AddPage(aPage As TVMemPage) As LongPtr
+    Dim u As Long: u = UBound(m_VMemPages)
+    If u < m_PagesCount Then
+        ReDim Preserve m_VMemPages(0 To (u + 1) * 2 - 1)
     End If
     m_VMemPages(m_PagesCount) = aPage
     m_PagesCount = m_PagesCount + 1
