@@ -13,23 +13,17 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Declare Sub GetSystemInfo Lib "kernel32" ( _
-    ByRef lpSystemInfo As SYSTEM_INFO)
+Private Declare Sub GetSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
 
-Private Declare Sub GetNativeSystemInfo Lib "kernel32" ( _
-    ByRef lpSystemInfo As SYSTEM_INFO)
+Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
 
-Private Declare Function RegOpenKeyExA Lib "advapi32" ( _
-    ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
+Private Declare Function RegOpenKeyExA Lib "advapi32" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
 
-Private Declare Function RegOpenKeyA Lib "advapi32" ( _
-    ByVal hKey As Long, ByVal lpSubKey As String, phkResult As Long) As Long
+Private Declare Function RegOpenKeyA Lib "advapi32" (ByVal hKey As Long, ByVal lpSubKey As String, phkResult As Long) As Long
 
-Private Declare Function RegQueryValueExA Lib "advapi32" ( _
-    ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
+Private Declare Function RegQueryValueExA Lib "advapi32" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
 
-Private Declare Function RegCloseKey Lib "advapi32" ( _
-    ByVal hKey As Long) As Long
+Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
 
 Private Const sCPURegKey = "HARDWARE\DESCRIPTION\System\CentralProcessor\0"
 Private Const HKEY_LOCAL_MACHINE As Long = &H80000002
@@ -124,6 +118,7 @@ Private Function GetCPUSpeed() As Long
     hr = RegCloseKey(hKey)
     GetCPUSpeed = CPUSpeed
 End Function
+
 Public Property Get CPUSpeed() As Long
     CPUSpeed = m_CPUSpeed
 End Property

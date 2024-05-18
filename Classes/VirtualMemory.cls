@@ -15,7 +15,7 @@ Option Explicit
 
 #If VBA7 Then
     Private Declare ptrsafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-    Private Declare ptrsafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
+    Private Declare ptrsafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
     Private Declare ptrsafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
     Private Declare ptrsafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
     Private Declare ptrsafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
@@ -175,7 +175,7 @@ End Function
 
 Public Function Alloc(ByVal Size As Long, _
                       Optional ByVal flAllocat As AllocationFlags = AllocationFlags.MemCommitReserve, _
-                      Optional ByVal flProtect As ProtectionFlags = ProtectionFlags.PageReadWrite) As Long
+                      Optional ByVal flProtect As ProtectionFlags = ProtectionFlags.PageReadWrite) As LongPtr
     Dim hr As Long
     If Size > m_PageSize Then
         'Definition: es soll nur für ausführbaren Speicher verwendet werden
@@ -205,7 +205,7 @@ Public Function Alloc(ByVal Size As Long, _
     m_size = m_size + Size
 End Function
 
-Public Property Get Pointer(ByVal Index As Long) As Long
+Public Property Get Pointer(ByVal Index As Long) As LongPtr
     Dim c As Long
     Dim i As Long
     
