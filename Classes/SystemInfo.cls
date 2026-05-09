@@ -13,24 +13,31 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Declare Sub GetSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-
-Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-
-Private Declare Function RegOpenKeyExA Lib "advapi32" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
-
-Private Declare Function RegOpenKeyA Lib "advapi32" (ByVal hKey As Long, ByVal lpSubKey As String, phkResult As Long) As Long
-
-Private Declare Function RegQueryValueExA Lib "advapi32" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
-
-Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
-
+#If VBA7 Then
+    Private Declare Ptrsafe Sub GetSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare Ptrsafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare Ptrsafe Function RegOpenKeyExW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpSubKey As LongPtr, ByVal ulOptions As Long, ByVal samDesired As Long, ByVal phkResult As LongPtr) As Long 'LSTATUS
+    Private Declare Ptrsafe Function RegOpenKeyW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpSubKey As LongPtr, ByVal phkResult As LongPtr) As Long 'LSTATUS
+    'RegQueryValueExW
+    'LSTATUS RegQueryValueExW([in] HKEY hKey, [in, optional] LPCWSTR lpValueName, LPDWORD lpReserved, [out, optional] LPDWORD lpType, [out, optional] LPBYTE lpData, [in, out, optional] LPDWORD lpcbData );
+    Private Declare Ptrsafe Function RegQueryValueExW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpValueName As LongPtr, ByVal lpReserved As LongPtr, lpType As Long, lpData As Any, lpcbData As Any) As Long 'LSTATUS
+    Private Declare Ptrsafe Function RegCloseKey Lib "advapi32" (ByVal hKey As LongPtr) As Long 'LSTATUS
+#Else
+    Private Declare Sub GetSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare Function RegOpenKeyExW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpSubKey As LongPtr, ByVal ulOptions As Long, ByVal samDesired As Long, ByVal phkResult As LongPtr) As Long 'LSTATUS
+    Private Declare Function RegOpenKeyW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpSubKey As LongPtr, ByVal phkResult As LongPtr) As Long 'LSTATUS
+    'RegQueryValueExW
+    'LSTATUS RegQueryValueExW([in] HKEY hKey, [in, optional] LPCWSTR lpValueName, LPDWORD lpReserved, [out, optional] LPDWORD lpType, [out, optional] LPBYTE lpData, [in, out, optional] LPDWORD lpcbData );
+    Private Declare Function RegQueryValueExW Lib "advapi32" (ByVal hKey As LongPtr, ByVal lpValueName As LongPtr, ByVal lpReserved As LongPtr, lpType As Long, lpData As Any, lpcbData As Any) As Long 'LSTATUS
+    Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As LongPtr) As Long 'LSTATUS
+#End If
 Private Const sCPURegKey = "HARDWARE\DESCRIPTION\System\CentralProcessor\0"
 Private Const HKEY_LOCAL_MACHINE As Long = &H80000002
-Private Const REG_SZ     As Long = 1
-Private Const REG_BINARY As Long = 3
-Private Const REG_DWORD  As Long = 4
-Private Const ERROR_SUCCESS          As Long = 0&
+Private Const REG_SZ             As Long = 1
+Private Const REG_BINARY         As Long = 3
+Private Const REG_DWORD          As Long = 4
+Private Const ERROR_SUCCESS      As Long = 0&
 'Private Const STANDARD_RIGHTS_ALL    As Long = &H1F0000
 'Private Const KEY_QUERY_VALUE        As Long = &H1&
 'Private Const KEY_SET_VALUE          As Long = &H2&
@@ -43,19 +50,18 @@ Private Const ERROR_SUCCESS          As Long = 0&
 '    STANDARD_RIGHTS_ALL Or KEY_QUERY_VALUE Or KEY_SET_VALUE Or KEY_CREATE_SUB_KEY Or _
 '    KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY Or KEY_CREATE_LINK) And (Not SYNCHRONIZE))
     
-Private Const KEY_QUERY_VALUE As Long = &H1&
+Private Const KEY_QUERY_VALUE        As Long = &H1&
 Private Const KEY_ENUMERATE_SUB_KEYS As Long = &H8&
-Private Const KEY_NOTIFY As Long = &H10&
+Private Const KEY_NOTIFY             As Long = &H10&
 
 Private Const KEY_READ = KEY_QUERY_VALUE Or KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY
-    
     
 Private Type SYSTEM_INFO
     wProcessorArchitecture  As Integer
     wReserved               As Integer
     dwPageSize              As Long
-    lpMinimumApplicationAddress As Long 'unsigned
-    lpMaximumApplicationAddress As Long 'unsigned
+    lpMinimumApplicationAddress As LongPtr
+    lpMaximumApplicationAddress As LongPtr
     dwActiveProcessorMask   As Long
     dwNumberOfProcessors    As Long
     dwProcessorType         As Long
@@ -63,12 +69,7 @@ Private Type SYSTEM_INFO
     wProcessorLevel         As Integer
     wProcessorRevision      As Integer
 End Type
-Private Type ULong
-    Value As Long
-End Type
-Private Type LongLong
-    Value As Currency
-End Type
+
 Private m_System_Info As SYSTEM_INFO
 Private m_CPUSpeed    As Long
 Private m_CPUName     As String
@@ -110,13 +111,11 @@ Public Property Get ProcessorArchitecture() As String
 End Property
 
 Private Function GetCPUSpeed() As Long
-    Dim hKey As Long
-    Dim hr As Long
-    hr = RegOpenKeyA(HKEY_LOCAL_MACHINE, sCPURegKey, hKey)
-    Dim CPUSpeed As Long
-    hr = RegQueryValueExA(hKey, "~MHz", 0, 0, CPUSpeed, 4)
-    hr = RegCloseKey(hKey)
-    GetCPUSpeed = CPUSpeed
+    Dim hKey As LongPtr
+    Dim ls As Long
+    ls = RegOpenKeyW(HKEY_LOCAL_MACHINE, StrPtr(sCPURegKey), VarPtr(hKey))
+    ls = RegQueryValueExW(hKey, StrPtr("~MHz"), 0, 0, GetCPUSpeed, 4)
+    ls = RegCloseKey(hKey)
 End Function
 
 Public Property Get CPUSpeed() As Long
@@ -125,29 +124,30 @@ End Property
 
 Private Function GetCPUName() As String
     
-    Dim hr As Long, hKey As Long
-    hr = RegOpenKeyExA(HKEY_LOCAL_MACHINE, sCPURegKey, 0&, KEY_READ, hKey)
-    If hr <> ERROR_SUCCESS Then Exit Function
+    Dim ls As Long, hKey As LongPtr
+    ls = RegOpenKeyExW(HKEY_LOCAL_MACHINE, StrPtr(sCPURegKey), 0&, KEY_READ, VarPtr(hKey))
+    If ls <> ERROR_SUCCESS Then Exit Function
     
     Dim RegType As Long, sLen As Long, sField As String: sField = "ProcessorNameString"
-    hr = RegQueryValueExA(hKey, sField, 0&, RegType, ByVal 0&, sLen)
-    If hr <> ERROR_SUCCESS Then
-        hr = RegCloseKey(hKey)
+    ls = RegQueryValueExW(hKey, StrPtr(sField), 0&, RegType, ByVal 0&, sLen)
+    If ls <> ERROR_SUCCESS Then
+        ls = RegCloseKey(hKey)
         Exit Function
     End If
     
     If RegType = REG_SZ Then
         GetCPUName = Space$(sLen) & vbNullChar
-        hr = RegQueryValueExA(hKey, sField, 0&, RegType, ByVal GetCPUName, sLen)
-        If hr <> ERROR_SUCCESS Then
-            hr = RegCloseKey(hKey)
+        ls = RegQueryValueExW(hKey, StrPtr(sField), 0&, RegType, ByVal StrPtr(GetCPUName), sLen)
+        If ls <> ERROR_SUCCESS Then
+            ls = RegCloseKey(hKey)
             Exit Function
         End If
         GetCPUName = Left$(GetCPUName, sLen)
     End If
-    hr = RegCloseKey(hKey)
-        
+    ls = RegCloseKey(hKey)
+    
 End Function
+
 Public Property Get CPUName() As String
     CPUName = m_CPUName
 End Property
@@ -156,30 +156,34 @@ Public Property Get PageSize() As Long
     PageSize = m_System_Info.dwPageSize
 End Property
 
-Public Property Get MinimumApplicationAddress() As Long
+Public Property Get MinimumApplicationAddress() As LongPtr
     MinimumApplicationAddress = m_System_Info.lpMinimumApplicationAddress
 End Property
-Private Function Long_ToULong(ByVal l As Long) As Variant 'Decimal!
-    Dim ul As ULong:   ul.Value = l
-    Dim ll As LongLong: LSet ll = ul
-    Long_ToULong = ll.Value * 10000
-End Function
-Public Property Get MaximumApplicationAddress()
-    'must be ULong
-    MaximumApplicationAddress = Long_ToULong(m_System_Info.lpMaximumApplicationAddress)
+'Private Function Long_ToULong(ByVal l As Long) As Variant 'Decimal!
+'    Dim ul As ULong:   ul.Value = l
+'    Dim ll As LongLong: LSet ll = ul
+'    Long_ToULong = ll.Value * 10000
+'End Function
+Public Property Get MaximumApplicationAddress() As LongPtr
+    MaximumApplicationAddress = m_System_Info.lpMaximumApplicationAddress 'Long_ToULong()
 End Property
+
 Public Property Get ActiveProcessorMask() As Long
     ActiveProcessorMask = m_System_Info.dwActiveProcessorMask
 End Property
+
 Public Property Get NumberOfProcessors() As Long
     NumberOfProcessors = m_System_Info.dwNumberOfProcessors
 End Property
+
 Public Property Get AllocationGranularity() As Long
     AllocationGranularity = m_System_Info.dwAllocationGranularity
 End Property
+
 Public Property Get ProcessorLevel() As Long
     ProcessorLevel = m_System_Info.wProcessorLevel
 End Property
+
 Public Property Get ProcessorRevision() As Integer
     ProcessorRevision = m_System_Info.wProcessorRevision
 End Property
@@ -205,8 +209,8 @@ Public Function ToStr() As String
         s = s & "Max App Address      : " & CStr(.MaximumApplicationAddress) & vbCrLf
         s = s & "AllocationGranularity: " & CStr(.AllocationGranularity) & vbCrLf
         s = s & "CPUSpeed             : " & CStr(.CPUSpeed) & "MHz" & vbCrLf
-        s = s & "Family : " & CStr(.ProcessorLevel) & ", Model: " & HiByte(.ProcessorRevision) & ", Stepping: " & LoByte(.ProcessorRevision) & vbCrLf
-        s = s & "CPU : " & .CPUName & vbCrLf
+        s = s & "Family               : " & CStr(.ProcessorLevel) & ", Model: " & HiByte(.ProcessorRevision) & ", Stepping: " & LoByte(.ProcessorRevision) & vbCrLf
+        s = s & "CPU                  : " & .CPUName & vbCrLf
     End With
     ToStr = s
 End Function

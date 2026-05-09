@@ -14,21 +14,32 @@ Attribute VB_Exposed = False
 Option Explicit
 
 #If VBA7 Then
-    Private Declare ptrsafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-    Private Declare ptrsafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
-    Private Declare ptrsafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
-    Private Declare ptrsafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
-    Private Declare ptrsafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
+    Private Declare PtrSafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
+    Private Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+    Private Declare PtrSafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
+    Private Declare PtrSafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
+    Private Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
+    Private Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+    Private Declare PtrSafe Function FormatMessageW Lib "kernel32.dll" (ByVal dwFlags As Long, ByRef lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As LongPtr, ByVal nSize As Long, ByRef Arguments As Long) As Long
+    
 #Else
-    Public Enum LongPtr
-        [_]
-    End Enum
+'    Public Enum LongPtr
+'        [_]
+'    End Enum
     Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-    Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+    'Private Declare Function VirtualAlloc Lib "kernel32" (ByVal BaseAddr As LongPtr, ByVal sz As LongPtr, ByVal AllocType As Long, ByVal Protect As Long) As LongPtr
+    'Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+    'https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc
+    Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
     Private Declare Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
     Private Declare Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
     Private Declare Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
+    Private Declare Function GetLastError Lib "kernel32" () As Long
+    Private Declare Function FormatMessageW Lib "kernel32.dll" (ByVal dwFlags As Long, ByRef lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As LongPtr, ByVal nSize As Long, ByRef Arguments As Long) As Long
 #End If
+
+Private Const FORMAT_MESSAGE_IGNORE_INSERTS  As Long = &H200
+Private Const FORMAT_MESSAGE_FROM_SYSTEM     As Long = &H1000
 
 Private Type SYSTEM_INFO
     wProcessorArchitecture  As Integer
@@ -76,7 +87,7 @@ Public Enum ProtectionFlags
     PageExecuteWriteCopy = &H80&    'PAGE_EXECUTE_WRITECOPY As Long = &H80
     PageGuard = &H100&              'PAGE_GUARD             As Long = &H100
     PageNoCache = &H200&            'PAGE_NOCACHE           As Long = &H200
-    PageWiteCombine = &H400&        'PAGE_WRITECOMBINE      As Long = &H400
+    PageWriteCombine = &H400&        'PAGE_WRITECOMBINE      As Long = &H400
 End Enum
 Private Type TVMemory
     Pointer     As LongPtr ' der Zeiger zum Speicher
@@ -134,6 +145,7 @@ End Property
 Public Property Get PagesCount() As Long
     PagesCount = m_PagesCount
 End Property
+
 Public Property Get AllocationGranularity() As Long
     AllocationGranularity = m_AGranularity
 End Property
@@ -168,14 +180,28 @@ Private Function New_Page(ByVal Size As Long, _
         With .Arr(0)
             .Size = Size
             .Pointer = VirtualAlloc(ByVal 0&, m_PageSize, flAl, flPr)
+            If .Pointer = 0 Then
+                Dim LastError As Long: LastError = GetLastError
+                Debug.Print "&H" & Hex(LastError) & " = """ & WinApiError_ToStr(LastError) & """"
+                '&H5AF = "Die Auslagerungsdatei ist zu klein, um diesen Vorgang durchzuführen."
+                Debug.Print "Err.LastDllError = " & Err.LastDllError & "; Err.Number = " & Err.Number & vbCrLf & Err.Description
+            End If
         End With
         .Count = 1
     End With
 End Function
 
+Private Function WinApiError_ToStr(ByVal MessageID As Long) As String
+    'MessageID e.g. hResult
+    Dim l As Long:   l = 512
+    Dim s As String: s = Space(l)
+    l = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, MessageID, 0&, StrPtr(s), l, ByVal 0&)
+    If l Then WinApiError_ToStr = Left$(s, l)
+End Function
+
 Public Function Alloc(ByVal Size As Long, _
                       Optional ByVal flAllocat As AllocationFlags = AllocationFlags.MemCommitReserve, _
-                      Optional ByVal flProtect As ProtectionFlags = ProtectionFlags.PageReadWrite) As LongPtr
+                      Optional ByVal flProtect As ProtectionFlags = ProtectionFlags.PageExecuteReadWrite) As LongPtr
     Dim hr As Long
     If Size > m_PageSize Then
         'Definition: es soll nur für ausführbaren Speicher verwendet werden

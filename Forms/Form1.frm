@@ -5,30 +5,31 @@ Begin VB.Form Form1
    ClientLeft      =   120
    ClientTop       =   450
    ClientWidth     =   9390
+   BeginProperty Font 
+      Name            =   "Segoe UI"
+      Size            =   9.75
+      Charset         =   0
+      Weight          =   400
+      Underline       =   0   'False
+      Italic          =   0   'False
+      Strikethrough   =   0   'False
+   EndProperty
    Icon            =   "Form1.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   7440
    ScaleWidth      =   9390
    StartUpPosition =   3  'Windows-Standard
-   Begin VB.CommandButton Command1 
-      Caption         =   "Command1"
-      Height          =   375
-      Left            =   6480
-      TabIndex        =   6
-      Top             =   3240
-      Width           =   1335
-   End
    Begin VB.CommandButton BtnInfo 
       Caption         =   "Info"
       Height          =   375
-      Left            =   5880
+      Left            =   6720
       TabIndex        =   5
       Top             =   3240
-      Width           =   495
+      Width           =   735
    End
    Begin VB.ListBox List1 
       BeginProperty Font 
-         Name            =   "Courier New"
+         Name            =   "Consolas"
          Size            =   9.75
          Charset         =   0
          Weight          =   400
@@ -45,18 +46,18 @@ Begin VB.Form Form1
    Begin VB.CommandButton BtnCopyArrayFromVMem 
       Caption         =   "Copy Array From VMem"
       Height          =   375
-      Left            =   3720
+      Left            =   4200
       TabIndex        =   2
       Top             =   3240
-      Width           =   2055
+      Width           =   2415
    End
    Begin VB.CommandButton BtnCopyArrayToVMem 
       Caption         =   "Copy Array To V-Mem"
       Height          =   375
-      Left            =   1560
+      Left            =   1680
       TabIndex        =   0
       Top             =   3240
-      Width           =   2055
+      Width           =   2415
    End
    Begin VB.CommandButton BtnCallMsInfo32 
       Caption         =   "msinfo32.exe"
@@ -64,12 +65,12 @@ Begin VB.Form Form1
       Left            =   120
       TabIndex        =   4
       Top             =   3240
-      Width           =   1335
+      Width           =   1455
    End
    Begin VB.Label Label1 
       Caption         =   "Label1"
       BeginProperty Font 
-         Name            =   "Courier New"
+         Name            =   "Consolas"
          Size            =   9.75
          Charset         =   0
          Weight          =   400
@@ -94,16 +95,16 @@ Private Declare Sub RtlMoveMemory Lib "kernel32" (ByRef pDst As Any, ByRef pSrc 
 
 Dim m_SysInfo As SystemInfo
 Dim m_VMem    As VirtualMemory
-Dim m_p0      As Long
-
-Private Sub BtnInfo_Click()
-    MsgBox App.CompanyName & " " & App.EXEName & " v" & App.Major & "." & App.Minor & "." & App.Revision & vbCrLf & App.FileDescription
-End Sub
+Dim m_p0      As LongPtr
 
 Private Sub Form_Load()
     Set m_SysInfo = New SystemInfo
     Label1.Caption = m_SysInfo.ToStr
     Set m_VMem = New VirtualMemory
+End Sub
+
+Private Sub BtnInfo_Click()
+    MsgBox App.CompanyName & " " & App.EXEName & " v" & App.Major & "." & App.Minor & "." & App.Revision & vbCrLf & App.FileDescription
 End Sub
 
 Private Sub BtnCallMsInfo32_Click()
@@ -124,7 +125,7 @@ Private Sub BtnCopyArrayToVMem_Click()
     Next
 
     'allocate virtual memory the size of the array in bytes
-    Dim p As Long: p = m_VMem.Alloc(aSize)
+    Dim p As LongPtr: p = m_VMem.Alloc(aSize)
     List1.AddItem "Allocated: " & aSize & " Bytes"
     'copy the array to virtual memory
     RtlMoveMemory ByVal p, Arr(0), aSize
@@ -141,7 +142,7 @@ Private Sub BtnCopyArrayFromVMem_Click()
     Randomize
     Dim ix As Long: ix = Rnd * m_VMem.PagesCount
     ix = IIf(ix = 0, 1, ix)
-    Dim p As Long: p = m_VMem.Pointer(ix)
+    Dim p As LongPtr: p = m_VMem.Pointer(ix)
     Dim sz As Long: sz = m_VMem.SizeForIndex(ix)
     If p = 0 Then
         MsgBox "Not enough virtual memory for index: " & ix
