@@ -15,7 +15,7 @@ Option Explicit
 
 #If VBA7 Then
     Private Declare PtrSafe Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-    Private Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+    Private Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
     Private Declare PtrSafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
     Private Declare PtrSafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long) As Long
     Private Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As LongPtr) As Long
@@ -27,8 +27,6 @@ Option Explicit
 '        [_]
 '    End Enum
     Private Declare Sub GetNativeSystemInfo Lib "kernel32" (ByRef lpSystemInfo As SYSTEM_INFO)
-    'Private Declare Function VirtualAlloc Lib "kernel32" (ByVal BaseAddr As LongPtr, ByVal sz As LongPtr, ByVal AllocType As Long, ByVal Protect As Long) As LongPtr
-    'Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByRef dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
     'https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc
     Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
     Private Declare Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As Long, ByVal dwFreeType As Long) As Long
@@ -111,13 +109,13 @@ Private m_AGranularity As Long       ' AllocationGranularity, die Größe eines ei
 '1. den VirtualMemory verwalten
 '2. alle Handles verwalten die den Speicher brauchen
 
-
 Private Sub Class_Initialize()
     Dim si As SYSTEM_INFO: GetNativeSystemInfo si
     m_AGranularity = si.dwAllocationGranularity
     m_PageSize = si.dwPageSize
     ReDim m_VMemPages(0 To 3)
 End Sub
+
 Private Sub Class_Terminate()
     '
     ' Speicher freigegeben wird nur ganz am Ende
